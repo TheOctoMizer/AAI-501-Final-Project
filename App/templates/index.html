@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Text and Image Processor</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <style>
+      /* Core styling */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f4f8;
+        color: #333;
+      }
+      h1 {
+        text-align: center;
+        color: #4a90e2;
+      }
+      #inputRows {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .row {
+        display: flex;
+        gap: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        flex-wrap: wrap;
+      }
+      .input-container,
+      .output {
+        flex: 1;
+        position: relative;
+        margin: 10px;
+      }
+      .textbox {
+        width: 100%;
+        height: 300px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+        resize: none;
+        background-color: #fafafa;
+        overflow-y: auto;
+      }
+      .upload-icon {
+        position: absolute;
+        bottom: 10px;
+        right: 15px;
+        font-size: 20px;
+        cursor: pointer;
+        color: #4a90e2;
+      }
+      .upload-icon input {
+        display: none;
+      }
+      .output {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fefefe;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .highlight {
+        background-color: #ffefef;
+        padding: 5px;
+        border-radius: 4px;
+      }
+      button {
+        padding: 12px 24px;
+        font-size: 16px;
+        color: #fff;
+        background-color: #4a90e2;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #357abd;
+      }
+      .button-container {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      /* New image preview styling */
+      .preview-container {
+        max-width: 100%;
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+      }
+      img.preview {
+        max-height: 150px;
+        max-width: 100%;
+        border-radius: 4px;
+        object-fit: cover;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Text and Image Processor</h1>
+    <div id="inputRows">
+      <div class="row">
+        <div class="input-container">
+          <textarea class="textbox" placeholder="Enter text here..."></textarea>
+          <label class="upload-icon">
+            <i class="fas fa-paperclip"></i>
+            <input
+              type="file"
+              accept="image/*"
+              onchange="handleFileInput(this)"
+            />
+          </label>
+          <div class="preview-container" style="display: none">
+            <img class="preview" />
+            <button class="remove-image" onclick="removeImage(this)">
+              Remove Image
+            </button>
+          </div>
+        </div>
+        <div class="output"></div>
+      </div>
+    </div>
+    <div class="button-container">
+      <button onclick="addRow()">Add Row</button>
+      <button onclick="processInputs()">Process Inputs</button>
+    </div>
+
+    <script>
+      function addRow() {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <div class="input-container">
+              <textarea class="textbox" placeholder="Enter text here..."></textarea>
+              <label class="upload-icon">
+                  <i class="fas fa-paperclip"></i>
+                  <input type="file" accept="image/*" onchange="handleFileInput(this)">
+              </label>
+              <div class="preview-container" style="display: none;">
+                  <img class="preview" />
+              </div>
+          </div>
+          <div class="output"></div>
+        `;
+        document.getElementById("inputRows").appendChild(row);
+      }
+
+      function handleFileInput(input) {
+        const file = input.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const row = input.closest(".row");
+            row.dataset.image = e.target.result.split(",")[1]; // Get base64 data without the prefix
+
+            const previewContainer = row.querySelector(".preview-container");
+            const previewImage = row.querySelector(".preview");
+            previewImage.src = e.target.result; // Set image preview src
+            previewContainer.style.display = "flex"; // Display the preview container
+
+            const textarea = row.querySelector("textarea");
+            textarea.style.display = "none"; // Hide the textarea
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function removeImage(button) {
+        const row = button.closest(".row");
+        const previewContainer = row.querySelector(".preview-container");
+        const textarea = row.querySelector("textarea");
+
+        previewContainer.style.display = "none"; // Hide the image preview
+        textarea.style.display = ""; // Show the textarea again
+
+        delete row.dataset.image; // Remove the image data from dataset
+      }
+
+      async function processInputs() {
+        const rows = document.querySelectorAll("#inputRows .row");
+        const inputs = [];
+
+        rows.forEach((row) => {
+          const textArea = row.querySelector("textarea");
+          if (textArea.value) {
+            inputs.push({
+              type: "text",
+              text: textArea.value,
+            });
+          } else if (row.dataset.image) {
+            inputs.push({
+              type: "image",
+              image: row.dataset.image,
+            });
+          }
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        document.getElementById("inputRows").style.pointerEvents = "none";
+
+        try {
+          const response = await fetch("/process", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ inputs }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+
+          const data = await response.json();
+          const { processed_inputs } = data;
+
+          rows.forEach((row) => {
+            const outputText = row.querySelector(".output");
+            outputText.innerHTML = "";
+          });
+
+          processed_inputs.forEach((input, index) => {
+            const outputText = rows[index].querySelector(".output");
+            if (input.type === "text") {
+              input.paragraphs.forEach((paragraph, index) => {
+                const p = document.createElement("p");
+                p.textContent = paragraph;
+                if (input.flags[index] === "AI") {
+                  p.classList.add("highlight");
+                }
+                outputText.appendChild(p);
+              });
+            } else if (input.type === "image") {
+              const label = document.createElement("p");
+              label.textContent = `Label: ${input.label}`;
+              if (input.label === "AI_GENERATED") {
+                label.classList.add("highlight");
+              }
+              outputText.appendChild(label);
+            }
+          });
+        } catch (error) {
+          console.error("Error:", error);
+          rows.forEach((row) => {
+            const outputText = row.querySelector(".output");
+            outputText.innerHTML =
+              '<p style="color: red;">Error processing inputs. Please try again.</p>';
+          });
+        } finally {
+          document.getElementById("inputRows").style.pointerEvents = "auto";
+        }
+      }
+    </script>
+  </body>
+</html>
